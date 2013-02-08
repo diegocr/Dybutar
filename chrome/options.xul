@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<prefwindow
+	title="Dybutar Preferences" 
+	id="dybutar-options"
+	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" onload="init()" onbeforeunload="exit()">
+	<script type="application/x-javascript">
+	<![CDATA[
+		let {classes:Cc,interfaces:Ci,utils:Cu,results:Cr} = Components, prefCount,prefData, Branch;
+		function init() {
+			Branch = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService).getBranch('extensions.dybutar.');
+			try {
+				prefCount = Branch.getIntPref('prefcount');
+			} catch(e) {
+				Branch.setIntPref('prefcount', prefCount = 13);
+			}
+			
+			try {
+				prefData = Branch.getCharPref('prefdata');
+			} catch(e) {
+				Branch.setCharPref('prefdata', prefData = '{}');
+			}
+			prefData = JSON.parse(prefData);
+			
+			let rows = document.getElementById('rows');
+			for( let i = 0 ; i < prefCount ; ++i ) {
+				
+				let row = document.createElement('row'),
+					textbox = function(n) {
+						let tb = document.createElement('textbox');
+						tb.setAttribute('flex','1');
+						tb.setAttribute('id','dybut'+i+'n'+n);
+						tb.setAttribute('value',prefData[i] && prefData[i][n] || '');
+						row.appendChild(tb);
+					};
+				
+				textbox(0);
+				textbox(1);
+				// textbox(2);
+				row.setAttribute('align', 'baseline');
+				rows.appendChild(row);
+			}
+			
+			document.documentElement.style.setProperty('min-width','640px','important');
+			window.sizeToContent();
+		}
+		function exit() {
+			let pd = {};
+			for( let i = 0 ; i < prefCount ; ++i ) {
+				let data = [],
+					push = function(n) {
+						let v = document.getElementById('dybut'+i+'n'+n).value;
+						if(v) data.push(v);
+					};
+				
+				push(0), push(1);// push(2);
+				if(data.length)
+					pd[i] = data;
+			}
+			
+			Branch.setCharPref('prefdata', JSON.stringify(pd));
+		}
+	]]>
+	</script>
+	<prefpane label="Dybutar Preferences">
+		<groupbox>
+			<grid>
+				<columns>
+					<column flex="100"/>
+					<column flex="50"/>
+					<!--column flex="8"/-->
+				</columns>
+				<rows id="rows">
+					<row align="baseline">
+						<label value="Website" />
+						<label value="Image URI" />
+						<!--label value="Position" /-->
+					</row>
+				</rows>
+			</grid>
+		</groupbox>
+	</prefpane>
+</prefwindow>
