@@ -6,6 +6,7 @@
  * 
  * Contributor(s):
  *   Diego Casorran <dcasorran@gmail.com> (Original Author)
+ *   Zulkarnain K. (Better click handling)
  * 
  * ***** END LICENSE BLOCK ***** */
 
@@ -30,6 +31,15 @@ let i$ = {
 
 (function(global) global.loadSubScript = function(file,scope)
 	Services.scriptloader.loadSubScript(file,scope||global))(this);
+
+function getBrowser(w) {
+	
+	try {
+		return w.getBrowser();
+	} catch(e) {
+		return w.gBrowser;
+	}
+}
 
 function loadIntoWindow(window) {
 	if(!(/^chrome:\/\/(browser|navigator)\/content\/\1\.xul$/.test(window&&window.location)))
@@ -68,15 +78,44 @@ function addButton(window,o) {
 			label:uri.host,class:'toolbarbutton-1 '+addon.tag+'-toolbar-button',
 			tooltiptext:addon.name+': '+uri.spec,
 			image:o[1]||uri.prePath+'/favicon.ico'
-		})).addEventListener('click', function() {
-			window.gBrowser.selectedTab = window.gBrowser.addTab(uri.spec);
+		})).addEventListener('click', function(e) {
+				switch(e.button) {
+					case 0:
+						if (!(e.ctrlKey || e.metaKey)) {
+							// load in current tab
+							window.loadURI(uri.spec);
+							break;
+						}
+					case 1:
+						// Load in background tab depends on its preference
+						let backgroundTab = Services.prefs.getBoolPref('browser.tabs.loadBookmarksInBackground');
+						getBrowser(window).loadOneTab(uri.spec,null,null,null,backgroundTab,true);
+				}
 		}, false);
 		
-		let nBar = $('nav-bar');
-		if(nBar) {
-			nBar.insertItem(m, null, null, false);
-			nBar.setAttribute("currentset", nBar.currentSet);
-			window.document.persist('nav-bar', "currentset");
+		let butPos = o[2] || 'nav-bar', prevPos, bID = o[0].replace(/[^\w]/g,'');
+		
+		try {
+			prevPos = addon.branch.getCharPref(bID);
+		} catch(e) {}
+		
+		if(prevPos !== butPos) {
+			let nBar = $(butPos);
+			if(nBar) {
+				nBar.insertItem(m, null, null, false);
+				nBar.setAttribute("currentset", nBar.currentSet);
+				window.document.persist('nav-bar', "currentset");
+			}
+			addon.branch.setCharPref(bID,butPos);
+		} else {
+			for each(let toolbar in window.document.querySelectorAll("toolbar[currentset]")) try {
+				let cSet = toolbar.getAttribute("currentset") || '';
+				if(cSet.split(",").some(function(x) x == m, this)) {
+					toolbar.currentSet = cSet;
+					window.BrowserToolboxCustomizeDone(true);
+					break;
+				}
+			} catch(e) {}
 		}
 	}
 }

@@ -4,8 +4,9 @@
 		<em:id>{1e6dc99a-3241-4192-932b-bc980b083530}</em:id>
 		<em:type>2</em:type>
 		<em:name>Dybutar</em:name>
-		<em:version>0.1</em:version>
+		<em:version>0.2</em:version>
 		<em:creator>Diego Casorran &lt;dcasorran@gmail.com&gt;</em:creator>
+		<em:contributor>Zulkarnain K.</em:contributor>
 		<em:description>Dynamic creation of bookmark-style toolbar buttons which you can customize.</em:description>
 		<em:bootstrap>true</em:bootstrap>
 		<em:optionsURL>chrome://dybutar/content/options.xul</em:optionsURL>
