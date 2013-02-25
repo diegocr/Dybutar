@@ -49,10 +49,8 @@ function loadIntoWindow(window) {
 		let prefData = JSON.parse(addon.branch.getCharPref('prefdata') || '{}');
 		
 		for each(let p in prefData) {
-			if(!(/^http/.test(p[0] || '')))
-				continue;
-			
-			addButton(window,p);
+			if(~(p[0] || '').indexOf('://'))
+				addButton(window,p);
 		}
 		
 	} catch(e) {
@@ -79,6 +77,10 @@ function addButton(window,o) {
 			tooltiptext:addon.name+': '+uri.spec,
 			image:o[1]||uri.prePath+'/favicon.ico'
 		})).addEventListener('click', function(e) {
+				if(uri.scheme === 'chrome') {
+					window.openDialog(uri.spec, uri.host, 'chrome,titlebar,toolbar,centerscreen');
+					return;
+				}
 				switch(e.button) {
 					case 0:
 						if (!(e.ctrlKey || e.metaKey)) {
