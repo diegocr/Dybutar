@@ -7,7 +7,7 @@ So, this restartless and lightweight add-on (4KB code, 8KB package) should make 
 
 This add-on provides a preferences window where you can define a URL, Image, and Toolbar ID - being the two later optional. If no image is specified the website's favicon will be used instead.
 
-###? FAQ ?###
+###➜ FAQ ✓###
 
 __Q: What is supposed to be in "ToolBar ID"?__
 

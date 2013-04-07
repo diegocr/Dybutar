@@ -46,10 +46,12 @@ function loadIntoWindow(window) {
 		return;
 	
 	try {
-		let prefData = JSON.parse(addon.branch.getCharPref('prefdata') || '{}');
+		let prefData = JSON.parse(addon.branch.getPrefType('prefdata')
+			&& addon.branch.getCharPref('prefdata') || '{}');
 		
 		for each(let p in prefData) {
-			if(~(p[0] || '').indexOf('://'))
+			let u = '' + p[0];
+			if(~u.indexOf('://') || /^about:/.test(u))
 				addButton(window,p);
 		}
 		
@@ -73,7 +75,8 @@ function addButton(window,o) {
 		let m = addon.tag+'-toolbar-button-'+uri.spec.replace(/[^\w]/g,'');
 		gNavToolbox.palette.appendChild(e('toolbarbutton',{
 			id:m,
-			label:uri.host,class:'toolbarbutton-1 '+addon.tag+'-toolbar-button',
+			label:~uri.spec.indexOf('://') ? uri.host:uri.spec,
+			class:'toolbarbutton-1 '+addon.tag+'-toolbar-button',
 			tooltiptext:addon.name+': '+uri.spec,
 			image:o[1]||uri.prePath+'/favicon.ico'
 		})).addEventListener('click', function(e) {
