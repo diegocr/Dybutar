@@ -108,9 +108,8 @@ function addButton(window,o) {
 						xul={spacer:1,spring:1,separator:1};
 						cs.splice(bp).some(function(id)
 							(at=$(id))?!0:(f.push(id),!1));
-						f.length&&(at=at||tb.lastElementChild,
-							f.forEach(function(n)xul[n]&&
-							(at=at&&at.previousElementSibling)));
+						at&&f.length&&f.forEach(function(n)xul[n]
+							&&(at=at&&at.previousElementSibling));
 						tb.insertItem(m, at, null, false);
 						return true;
 					}
