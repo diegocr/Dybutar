@@ -86,15 +86,18 @@ function addButton(window,o) {
 			tooltiptext:addon.name+': '+uri.spec,
 			image:o[1]||uri.prePath+'/favicon.ico'
 		})).addEventListener('click', function(e) {
-				if(uri.scheme === 'chrome') {
-					window.openDialog(uri.spec, uri.host, 'chrome,titlebar,toolbar,centerscreen');
+				if(~['chrome','about'].indexOf(uri.scheme)) {
+					window.openDialog(uri.spec,
+						uri.asciiHost || uri.spec,
+							'chrome,titlebar,toolbar,centerscreen');
 					return;
 				}
 				// Sorry Zulkarnain, found this to be best suitable.
 				window.openUILink(uri.spec,e,{
-					inBackground: Services.prefs
-						.getBoolPref('browser.tabs.loadInBackground'),
-					relatedToCurrent: true});
+					relatedToCurrent: true,
+					inBackground: (function(p,n) p.getPrefType(n)
+					&&	p.getBoolPref(n))(Services.prefs,
+						'browser.tabs.loadInBackground')});
 		}, false);
 		
 		let butPos = o[2] || 'nav-bar', prevPos, bID = o[0].replace(/[^\w]/g,'');
@@ -186,18 +189,12 @@ function startup(data) {
 }
 
 function shutdown(aData, aReason) {
-LOG(aReason);
 	if(aReason == APP_SHUTDOWN)
 		return;
 	
 	addon.branch.removeObserver("",branchObserver,false);
 	Services.wm.removeListener(i$);
 	i$.wmf(unloadFromWindow);
-	LOG('shutdown');
-	if(aReason == ADDON_UNINSTALL) {
-		LOG('uninstall');
-		
-	}
 }
 
 function uninstall(aData, aReason) {
