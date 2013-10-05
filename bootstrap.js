@@ -17,19 +17,33 @@ function LOG(m) (m = addon.name + ' Message @ '
 	+ (new Date()).toISOString() + "\n> " + m,
 		dump(m + "\n"), Services.console.logStringMessage(m));
 
+let ia = Services.appinfo.ID[3],
+	wt = 5==ia?'mail:3pane'
+		:'navigator:browser';
+
 let i$ = {
-	get Window() Services.wm.getMostRecentWindow('navigator:browser'),
+	get Window() Services.wm.getMostRecentWindow(wt),
 	
 	onOpenWindow: function(aWindow) {
 		let domWindow = aWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
 		loadIntoWindowStub(domWindow);
+	},
+	wmf: function(callback) {
+		let windows = Services.wm.getEnumerator(wt);
+		while(windows.hasMoreElements())
+			callback(windows.getNext()
+				.QueryInterface(Ci.nsIDOMWindow));
+	},
+	tcsf: function(aWindow,aCallB) {
+		[].some.call(aWindow.document.querySelectorAll("toolbar[currentset]"),
+			function(tb) aCallB(tb,tb.getAttribute("currentset").split(",")));
 	},
 	onCloseWindow: function() {},
 	onWindowTitleChange: function() {}
 };
 
 function loadIntoWindow(window) {
-	if(!(/^chrome:\/\/(browser|navigator)\/content\/\1\.xul$/.test(window&&window.location)))
+	if(wt!=window.document.documentElement.getAttribute("windowtype"))
 		return;
 	
 	try {
@@ -62,8 +76,8 @@ function addButton(window,o) {
 	
 	let uri = Services.io.newURI(o[0],null,null);
 	
-	let gNavToolbox = window.gNavToolbox || $('navigator-toolbox');
-	if(gNavToolbox && gNavToolbox.palette.id == 'BrowserToolbarPalette') {
+	let gNavToolbox = window.gNavToolbox || $('mail-toolbox');
+	if(gNavToolbox && gNavToolbox.palette) {
 		let m = addon.tag+'-toolbar-button-'+uri.spec.replace(/[^\w]/g,'');
 		gNavToolbox.palette.appendChild(e('toolbarbutton',{
 			id:m,
@@ -90,30 +104,29 @@ function addButton(window,o) {
 		} catch(e) {}
 		
 		if(prevPos !== butPos) {
-			let nBar = $(butPos);
+			let nBar = $(butPos) || $('mail-bar3');
 			if(nBar) {
 				nBar.insertItem(m, null, null, false);
 				nBar.setAttribute("currentset", nBar.currentSet);
 				window.document.persist(nBar.id, "currentset");
+				nBar.collapsed = false;
 			}
 			addon.branch.setCharPref(bID,butPos);
 		} else {
-			[].some.call(window.document.querySelectorAll("toolbar[currentset]"),
-				function(tb) {
-					let cs = tb.getAttribute("currentset").split(","),
-						bp = cs.indexOf(m) + 1;
-					
-					if(bp) {
-						let at = null, f = [],
-						xul={spacer:1,spring:1,separator:1};
-						cs.splice(bp).some(function(id)
-							(at=$(id))?!0:(f.push(id),!1));
-						at&&f.length&&f.forEach(function(n)xul[n]
-							&&(at=at&&at.previousElementSibling));
-						tb.insertItem(m, at, null, false);
-						return true;
-					}
-				});
+			i$.tcsf(window,function(tb,cs) {
+				let bp = cs.indexOf(m) + 1;
+				
+				if(bp) {
+					let at = null, f = [],
+					xul={spacer:1,spring:1,separator:1};
+					cs.splice(bp).some(function(id)
+						(at=$(id))?!0:(f.push(id),!1));
+					at&&f.length&&f.forEach(function(n)xul[n]
+						&&(at=at&&at.previousElementSibling));
+					tb.insertItem(m, at, null, false);
+					return true;
+				}
+			});
 		}
 	}
 }
@@ -131,19 +144,23 @@ function loadIntoWindowStub(domWindow) {
 }
 
 function unloadFromWindow(window) {
+	let gNavToolbox = window.gNavToolbox
+		|| window.document.getElementById('mail-toolbox');
 	
-	[].forEach.call(window.document.querySelectorAll('.'+addon.tag+'-toolbar-button'),function(btn){
-		btn.parentNode.removeChild(btn);
+	[window.document,gNavToolbox && gNavToolbox.palette].forEach(function(n) {
+		
+		if(!n) return;
+		[].forEach.call(n.querySelectorAll('[id^="dybutar-"]'),function(n) {
+			n.parentNode.removeChild(n);
+		});
 	});
 }
 
 function setupWindows(cb) {
-	let windows = Services.wm.getEnumerator("navigator:browser");
-	while(windows.hasMoreElements()) {
-		let domWindow = windows.getNext().QueryInterface(Ci.nsIDOMWindow);
-		if(cb) cb(domWindow);
-		loadIntoWindowStub(domWindow);
-	}
+	i$.wmf(function(aWindow) {
+		if(cb) cb(aWindow);
+		loadIntoWindowStub(aWindow);
+	});
 }
 
 function branchObserver(s,t,d) {
@@ -168,19 +185,32 @@ function startup(data) {
 	});
 }
 
-function shutdown(data, reason) {
-	if(reason == APP_SHUTDOWN)
+function shutdown(aData, aReason) {
+LOG(aReason);
+	if(aReason == APP_SHUTDOWN)
 		return;
 	
 	addon.branch.removeObserver("",branchObserver,false);
 	Services.wm.removeListener(i$);
-	
-	let windows = Services.wm.getEnumerator("navigator:browser");
-	while(windows.hasMoreElements()) {
-		let domWindow = windows.getNext().QueryInterface(Ci.nsIDOMWindow);
-		unloadFromWindow(domWindow);
+	i$.wmf(unloadFromWindow);
+	LOG('shutdown');
+	if(aReason == ADDON_UNINSTALL) {
+		LOG('uninstall');
+		
 	}
 }
 
-function install(data, reason) {}
-function uninstall(data, reason) {}
+function uninstall(aData, aReason) {
+	if(ADDON_UNINSTALL == aReason) {
+		i$.wmf(function(aWindow) {
+			i$.tcsf(aWindow,function(tb,cs) {
+				tb.setAttribute("currentset",
+					tb.currentSet =
+					cs.filter(function(n)
+						!/^dybutar-/.test(n)).join(","));
+				aWindow.document.persist(tb.id, "currentset");
+			});
+		});
+	}
+}
+function install(aData, aReason) {}
