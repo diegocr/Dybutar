@@ -27,3 +27,6 @@ A: Probably you didn't specified a proper URL (ie, something which contains "://
 __Q: Couldn't make it work.  all I got was a blank icon.__
 
 A: Either you didn't provided an image and the site does not have a proper favicon, or the image you've provided isn't valid - try to specify a[nother] image.
+
+___
+_AMO Listing page: <https://addons.mozilla.org/addon/dybutar/>_

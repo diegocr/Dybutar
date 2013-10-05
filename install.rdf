@@ -4,7 +4,7 @@
 		<em:id>{1e6dc99a-3241-4192-932b-bc980b083530}</em:id>
 		<em:type>2</em:type>
 		<em:name>Dybutar</em:name>
-		<em:version>0.4</em:version>
+		<em:version>0.5.0a1</em:version>
 		<em:creator>Diego Casorran &lt;dcasorran@gmail.com&gt;</em:creator>
 		<em:contributor>Zulkarnain K.</em:contributor>
 		<em:description>Dynamic creation of bookmark-style toolbar buttons which you can customize.</em:description>
@@ -15,7 +15,7 @@
 				<!-- Firefox -->
 				<em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
 				<em:minVersion>7.0</em:minVersion>
-				<em:maxVersion>22.0</em:maxVersion>
+				<em:maxVersion>26.*</em:maxVersion>
 			</Description>
 		</em:targetApplication>
 		<em:targetApplication>
@@ -23,7 +23,7 @@
 				<!-- SeaMonkey -->
 				<em:id>{92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}</em:id>
 				<em:minVersion>2.3</em:minVersion>
-				<em:maxVersion>2.16a1</em:maxVersion>
+				<em:maxVersion>2.24</em:maxVersion>
 			</Description>
 		</em:targetApplication>
 	</Description>

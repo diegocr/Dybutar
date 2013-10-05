@@ -10,10 +10,9 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-let {classes:Cc,interfaces:Ci,utils:Cu,results:Cr} = Components,addon,
-	{ btoa, atob } = Cu.import("resource://gre/modules/Services.jsm");
+let {classes:Cc,interfaces:Ci,utils:Cu,results:Cr} = Components,addon;
+Cu.import("resource://gre/modules/Services.jsm");
 
-function rsc(n) 'resource://' + addon.tag + '/' + n;
 function LOG(m) (m = addon.name + ' Message @ '
 	+ (new Date()).toISOString() + "\n> " + m,
 		dump(m + "\n"), Services.console.logStringMessage(m));
@@ -29,18 +28,6 @@ let i$ = {
 	onWindowTitleChange: function() {}
 };
 
-(function(global) global.loadSubScript = function(file,scope)
-	Services.scriptloader.loadSubScript(file,scope||global))(this);
-
-function getBrowser(w) {
-	
-	try {
-		return w.getBrowser();
-	} catch(e) {
-		return w.gBrowser;
-	}
-}
-
 function loadIntoWindow(window) {
 	if(!(/^chrome:\/\/(browser|navigator)\/content\/\1\.xul$/.test(window&&window.location)))
 		return;
@@ -51,14 +38,19 @@ function loadIntoWindow(window) {
 		
 		for each(let p in prefData) {
 			let u = '' + p[0];
-			if(~u.indexOf('://') || /^about:/.test(u))
-				addButton(window,p);
+			if(~u.indexOf('://') || /^about:/.test(u)) {
+				try {
+					addButton(window,p);
+				} catch(e) {
+					Cu.reportError(e);
+				}
+			}
 		}
-		
 	} catch(e) {
-		LOG(e);
+		Cu.reportError(e);
 	}
 }
+
 function addButton(window,o) {
 	function c(n) window.document.createElement(n);
 	function $(n) window.document.getElementById(n);
@@ -84,18 +76,11 @@ function addButton(window,o) {
 					window.openDialog(uri.spec, uri.host, 'chrome,titlebar,toolbar,centerscreen');
 					return;
 				}
-				switch(e.button) {
-					case 0:
-						if (!(e.ctrlKey || e.metaKey)) {
-							// load in current tab
-							window.loadURI(uri.spec);
-							break;
-						}
-					case 1:
-						// Load in background tab depends on its preference
-						let backgroundTab = Services.prefs.getBoolPref('browser.tabs.loadBookmarksInBackground');
-						getBrowser(window).loadOneTab(uri.spec,null,null,null,backgroundTab,true);
-				}
+				// Sorry Zulkarnain, found this to be best suitable.
+				window.openUILink(uri.spec,e,{
+					inBackground: Services.prefs
+						.getBoolPref('browser.tabs.loadInBackground'),
+					relatedToCurrent: true});
 		}, false);
 		
 		let butPos = o[2] || 'nav-bar', prevPos, bID = o[0].replace(/[^\w]/g,'');
@@ -109,18 +94,27 @@ function addButton(window,o) {
 			if(nBar) {
 				nBar.insertItem(m, null, null, false);
 				nBar.setAttribute("currentset", nBar.currentSet);
-				window.document.persist('nav-bar', "currentset");
+				window.document.persist(nBar.id, "currentset");
 			}
 			addon.branch.setCharPref(bID,butPos);
 		} else {
-			for each(let toolbar in window.document.querySelectorAll("toolbar[currentset]")) try {
-				let cSet = toolbar.getAttribute("currentset") || '';
-				if(cSet.split(",").some(function(x) x == m, this)) {
-					toolbar.currentSet = cSet;
-					window.BrowserToolboxCustomizeDone(true);
-					break;
-				}
-			} catch(e) {}
+			[].some.call(window.document.querySelectorAll("toolbar[currentset]"),
+				function(tb) {
+					let cs = tb.getAttribute("currentset").split(","),
+						bp = cs.indexOf(m) + 1;
+					
+					if(bp) {
+						let at = null, f = [],
+						xul={spacer:1,spring:1,separator:1};
+						cs.splice(bp).some(function(id)
+							(at=$(id))?!0:(f.push(id),!1));
+						f.length&&(at=at||tb.lastElementChild,
+							f.forEach(function(n)xul[n]&&
+							(at=at&&at.previousElementSibling)));
+						tb.insertItem(m, at, null, false);
+						return true;
+					}
+				});
 		}
 	}
 }
@@ -158,34 +152,21 @@ function branchObserver(s,t,d) {
 		setupWindows(unloadFromWindow);
 }
 
-function setup(data) {
-	
-	let io = Services.io;
-	
-	addon = {
-		id: data.id,
-		name: data.name,
-		version: data.version,
-		tag: data.name.toLowerCase().replace(/[^\w]/g,''),
-	};
-	
-	addon.branch = Services.prefs.getBranch('extensions.'+addon.tag+'.');
-	addon.branch.addObserver("",branchObserver,false);
-	
-/* 	io.getProtocolHandler("resource")
-		.QueryInterface(Ci.nsIResProtocolHandler)
-		.setSubstitution(addon.tag,
-			io.newURI(__SCRIPT_URI_SPEC__+'/../',null,null));
-	 */
-	setupWindows();
-	Services.wm.addListener(i$);
-	io = null;
-}
-
 function startup(data) {
 	let tmp = {};
 	Cu.import("resource://gre/modules/AddonManager.jsm", tmp);
-	tmp.AddonManager.getAddonByID(data.id,setup);
+	tmp.AddonManager.getAddonByID(data.id,function(data) {
+		addon = {
+			id: data.id,
+			name: data.name,
+			version: data.version,
+			tag: data.name.toLowerCase().replace(/[^\w]/g,''),
+		};
+		addon.branch = Services.prefs.getBranch('extensions.'+addon.tag+'.');
+		addon.branch.addObserver("",branchObserver,false);
+		setupWindows();
+		Services.wm.addListener(i$);
+	});
 }
 
 function shutdown(data, reason) {
@@ -200,10 +181,6 @@ function shutdown(data, reason) {
 		let domWindow = windows.getNext().QueryInterface(Ci.nsIDOMWindow);
 		unloadFromWindow(domWindow);
 	}
-	
-/* 	Services.io.getProtocolHandler("resource")
-		.QueryInterface(Ci.nsIResProtocolHandler)
-		.setSubstitution(addon.tag,null); */
 }
 
 function install(data, reason) {}
