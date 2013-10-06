@@ -31,7 +31,7 @@ A: Either you didn't provided an image and the site does not have a proper favic
 
 __Q: Nice set of default icons!__
 
-A: Credit belongs to *emey87* for his (Trainee IconSet)[http://emey87.deviantart.com/art/trainee-iconset-226-icons-192928994]
+A: Credit belongs to *emey87* for his [Trainee IconSet](http://emey87.deviantart.com/art/trainee-iconset-226-icons-192928994)
 
 ___
 _AMO Listing page: <https://addons.mozilla.org/addon/dybutar/>_
