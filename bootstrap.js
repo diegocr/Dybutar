@@ -10,9 +10,10 @@
  * 
  * ***** END LICENSE BLOCK ***** */
 
-let {classes:Cc,interfaces:Ci,utils:Cu,results:Cr} = Components,addon;
+let {classes:Cc,interfaces:Ci,utils:Cu,results:Cr}=Components,addon,scope=this;
 Cu.import("resource://gre/modules/Services.jsm");
 
+function rsc(n) 'resource://' + addon.tag + '/' + n;
 function LOG(m) (m = addon.name + ' Message @ '
 	+ (new Date()).toISOString() + "\n> " + m,
 		dump(m + "\n"), Services.console.logStringMessage(m));
@@ -74,7 +75,9 @@ function addButton(window,o) {
 		return e;
 	}
 	
-	let uri = Services.io.newURI(o[0],null,null);
+	let uri = Services.io.newURI(o[0],null,null),
+		img = IconSet[o[1]] ? rsc('icons/'+o[1]+'.png')
+			: o[1] || uri.prePath+'/favicon.ico';
 	
 	let gNavToolbox = window.gNavToolbox || $('mail-toolbox');
 	if(gNavToolbox && gNavToolbox.palette) {
@@ -83,8 +86,7 @@ function addButton(window,o) {
 			id:m,
 			label:~uri.spec.indexOf('://') ? uri.host:uri.spec,
 			class:'toolbarbutton-1 '+addon.tag+'-toolbar-button',
-			tooltiptext:addon.name+': '+uri.spec,
-			image:o[1]||uri.prePath+'/favicon.ico'
+			tooltiptext:addon.name+': '+uri.spec,image:img
 		})).addEventListener('click', function(e) {
 				if(~['chrome','about'].indexOf(uri.scheme)) {
 					window.openDialog(uri.spec,
@@ -175,6 +177,8 @@ function startup(data) {
 	let tmp = {};
 	Cu.import("resource://gre/modules/AddonManager.jsm", tmp);
 	tmp.AddonManager.getAddonByID(data.id,function(data) {
+		let io = Services.io;
+		
 		addon = {
 			id: data.id,
 			name: data.name,
@@ -183,6 +187,15 @@ function startup(data) {
 		};
 		addon.branch = Services.prefs.getBranch('extensions.'+addon.tag+'.');
 		addon.branch.addObserver("",branchObserver,false);
+		
+		io.getProtocolHandler("resource")
+			.QueryInterface(Ci.nsIResProtocolHandler)
+			.setSubstitution(addon.tag,
+				io.newURI(__SCRIPT_URI_SPEC__+'/../',null,null));
+		
+		Cu.import(rsc('icons.jsm'),scope);
+		SharedData.wt = wt;
+		
 		setupWindows();
 		Services.wm.addListener(i$);
 	});
@@ -195,6 +208,11 @@ function shutdown(aData, aReason) {
 	addon.branch.removeObserver("",branchObserver,false);
 	Services.wm.removeListener(i$);
 	i$.wmf(unloadFromWindow);
+	
+	Cu.unload(rsc('icons.jsm'));
+	Services.io.getProtocolHandler("resource")
+		.QueryInterface(Ci.nsIResProtocolHandler)
+		.setSubstitution(addon.tag,null);
 }
 
 function uninstall(aData, aReason) {

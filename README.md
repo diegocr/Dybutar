@@ -28,5 +28,10 @@ __Q: Couldn't make it work.  all I got was a blank icon.__
 
 A: Either you didn't provided an image and the site does not have a proper favicon, or the image you've provided isn't valid - try to specify a[nother] image.
 
+
+__Q: Nice set of default icons!__
+
+A: Credit belongs to *emey87* for his (Trainee IconSet)[http://emey87.deviantart.com/art/trainee-iconset-226-icons-192928994]
+
 ___
 _AMO Listing page: <https://addons.mozilla.org/addon/dybutar/>_
